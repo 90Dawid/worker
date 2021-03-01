@@ -1,4 +1,4 @@
-﻿using Soneta.Business;
+using Soneta.Business;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,6 +8,7 @@ using Soneta.Kadry;
 using Soneta.KadryPlace;
 using Soneta.Types;
 using Rekrutacja.Workers.Template;
+using Soneta.CRM;
 
 //Rejetracja Workera - Pierwszy TypeOf określa jakiego typu ma być wyświetlany Worker, Drugi parametr wskazuje na jakim Typie obiektów będzie wyświetlany Worker
 [assembly: Worker(typeof(TemplateWorker), typeof(Pracownicy))]
@@ -18,17 +19,59 @@ namespace Rekrutacja.Workers.Template
         //Aby parametry działały prawidłowo dziedziczymy po klasie ContextBase
         public class TemplateWorkerParametry : ContextBase
         {
-            [Caption("Data obliczeń")]
+            [Caption("A")]
+            public double a { get; set; }
+
+            [Caption("B")]
+            public double b { get; set; }
+
+            [Caption("Data Oblicze")]
             public Date DataObliczen { get; set; }
+
+
+            [Caption("Operacje")]
+            public char operacje { get; set; }
+
+            public double metodyOperacji()
+            {
+                if (operacje == '+')
+                {
+                    return a + b;
+                }
+
+                if (operacje == '-')
+                {
+                    return a - b;
+                }
+
+                if (operacje == '*')
+                {
+                    return a * b;
+                }
+
+                if (operacje == '/')
+                {
+                    return a / b;
+                }
+
+                else
+                    return 0;
+            }
+
             public TemplateWorkerParametry(Context context) : base(context)
             {
                 this.DataObliczen = Date.Today;
+                this.a = a;
+                this.b = b;
+                this.operacje = operacje;
             }
         }
+
         //Obiekt Context jest to pudełko które przechowuje Typy danych, aktualnie załadowane w aplikacji
         //Atrybut Context pobiera z "Contextu" obiekty które aktualnie widzimy na ekranie
         [Context]
         public Context Cx { get; set; }
+
         //Pobieramy z Contextu parametry, jeżeli nie ma w Context Parametrów mechanizm sam utworzy nowy obiekt oraz wyświetli jego formatkę
         [Context]
         public TemplateWorkerParametry Parametry { get; set; }
@@ -59,8 +102,25 @@ namespace Rekrutacja.Workers.Template
                 {
                     //Pobieramy obiekt z Nowo utworzonej sesji
                     var pracownikZSesja = nowaSesja.Get(pracownik);
-                    //Features - są to pola rozszerzające obiekty w bazie danych, dzięki czemu nie jestesmy ogarniczeni to kolumn jakie zostały utworzone przez producenta
-                    pracownikZSesja.Features["DataObliczen"] = this.Parametry.DataObliczen;
+                    //Features - są to pola rozszerzające obiekty w bazie danych, dzięki czemu nie jestesmy ogarniczeni do kolumn jakie zostały utworzone przez producenta
+                    if (pracownikZSesja != null)
+                    {
+                        pracownikZSesja.Features["DataObliczen"] = this.Parametry.DataObliczen;
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Bład sesji");
+                    }
+
+                    if (pracownikZSesja != null)
+                    {
+                        pracownikZSesja.Features["Wynik"] = this.Parametry.metodyOperacji();
+                    }
+                    else
+                    {
+                        throw new InvalidOperationException("Bład sesji");
+                    }
+                       
                     //Zatwierdzamy zmiany wykonane w sesji
                     trans.CommitUI();
                 }
